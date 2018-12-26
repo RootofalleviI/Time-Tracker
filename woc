@@ -14,7 +14,7 @@
 ###################################################################################################
 ### Constants (you can modify these to suit your needs)
 
-DIRECTORY="~/.tracker/"
+DIRECTORY=".tracker/"
 INPUT_FILE="${DIRECTORY}input.txt"
 OUTPUT_FILE="${DIRECTORY}output.txt"
 
