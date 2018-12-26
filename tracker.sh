@@ -9,67 +9,136 @@
 # - tracker start <task-name>: start a new tracker.
 # - tracker stop -m <comment>: stop the tracker and enter a descriptive message.
 # - tracker add <task-name> <task-duration> -m <comment>
-
+###################################################################################################
 ### Constants (you can modify these to suit your needs)
-INPUT_FILE='~/.tracker/input.txt'
-OUTPUT_FILE='~/.tracker/output.txt'
 
-### Functions
+DIRECTORY="~/.tracker/"
+INPUT_FILE="${DIRECTORY}input.txt"
+OUTPUT_FILE="${DIRECTORY}output.txt"
+
+
+
+### Helper Functions
+
 error () {
-  echo "$0: $1. Aborted." 1>&2
+  echo "[ERROR] $0: $1. Aborted" 1>&2
   exit 1
 }
 
+
 info () {
-  echo "$1. Done."
+  echo "[INFO] $0: $1"
 }
+
+
+prompt() {
+  echo "[PROMPT] $0: $1"
+}
+
+
+warning() {
+  echo "[WARNING] $0: $1"
+}
+
+
+### Main Logic
 
 start_handler () {
-  task_name=$2
+
+  task_name=$1
   start_time=$(date '+%H:%M:%S')
-  echo "Starting $task_name at $start_time"
-  info "Written to $OUTPUT_FILE"
+  info "Starting $task_name at ${start_time}."
+  
+  if [ -f $INPUT_FILE ]; then
+
+    old_task_name=$(sed '1q;d' $INPUT_FILE)
+    old_start_time=$(sed '2q;d' $INPUT_FILE)
+    warning "You haven't stopped your last tracker ${old_task_name} (started at ${old_start_time}).
+             To discard this record, enter N; to save the record, enter S."
+
+    while true; do
+      read response
+
+      if [ ${response} == "N" ] || [ ${response} == "n" ]; then
+        rm $INPUT_FILE
+        break
+
+      elif [ ${response} == "S" ] || [ ${response} == "s" ]; then
+        echo "Enter a descriptive message:"
+        read message
+        stop_handler "-m" message
+        break
+
+      else
+        echo "Unknown Input. Try again."
+
+      fi
+    done
+  fi
+
+  touch $INPUT_FILE
+  echo $task_name >> $INPUT_FILE
+  echo $start_time >> $INPUT_FILE
+  info "Data written to $INPUT_FILE. GLHF!"
 }
 
+
 stop_handler () {
+
   flag=$1
-  case "flag" in
+  case $flag in
     -m)
       message=$2
       ;;
     *)
       error "unknown flag" 1>&2
   esac
-  start_time=$(cat $INPUT_FILE)
-  end_time=$(date '%H:%M:%S')
-  duration=$(dateutils.ddiff $start_time $end_time -f "%M")
-  echo "You invested $duration minutes in this task.
+  
+  if [ -f ${INPUT_FILE} ]; then 
+
+    task_name=$(sed '1q;d' ${INPUT_FILE})
+    start_time=$(sed '2q;d' ${INPUT_FILE})
+
+    end_time=$(date '+%H:%M:%S')
+    duration=$(dateutils.ddiff ${start_time} ${end_time} -f '%M')
+
+    info "You have invested ${duration} minutes on ${task_name}."
+    
+    today=$(date '+%D')
+    echo ${today} ${task_name} ${duration} >> ${OUTPUT_FILE}
+    echo ${message} >> ${OUTPUT_FILE}
+    echo -en '\n' >> ${OUTPUT_FILE}
+
+    info "Data written to ${OUTPUT_FILE}. Take a break!"
+
+  else 
+    error "INPUT_FILE missing."
+
+  fi
 }
 
+
+# Implementing later
 add_handler() {
   :
 }
 
+
+
 ### Main
-if [$# -lt 2]; then
+mkdir -p $DIRECTORY
+if [ $# -lt 2 ]; then
   error "not enough arguments"
 else
-  if ["$1" == "start"]; 
+  if [ "$1" == "start" ]; 
   then
-    start_handler 
-      $2                  # Task Name
-  elif ["$1" == "stop"];
+    start_handler $2          
+  elif [ "$1" == "stop" ];
   then
-    stop_handler 
-      $2                  # Flag, currently only handles -m 
-      $3                  # If flag == '-m', this is amessage
-  elif ["$1" == "add"];
+    stop_handler $2 $3 
+  elif [ "$1" == "add" ];
   then
-    add_handler 
-      $2                  # Task Name
-      $3                  # Task Duration
-      $4                  # Flag, currently only handles -m
-      $5                  # If flag == '-m', this is a message
+    add_handler $2 $3 $4 $5   
   fi
 fi
 
