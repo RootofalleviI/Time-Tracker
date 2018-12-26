@@ -9,6 +9,8 @@
 # - tracker start <task-name>: start a new tracker.
 # - tracker stop -m <comment>: stop the tracker and enter a descriptive message.
 # - tracker add <task-name> <task-duration> -m <comment>
+
+### More commands and flags will be supported in the future.
 ###################################################################################################
 ### Constants (you can modify these to suit your needs)
 
@@ -109,6 +111,7 @@ stop_handler () {
     echo ${message} >> ${OUTPUT_FILE}
     echo -en '\n' >> ${OUTPUT_FILE}
 
+    rm ${INPUT_FILE}
     info "Data written to ${OUTPUT_FILE}. Take a break!"
 
   else 
@@ -127,19 +130,48 @@ add_handler() {
 
 ### Main
 mkdir -p $DIRECTORY
+if [ ! -f $OUTPUT_FILE ]; then
+  touch $OUTPUT_FILE
+fi
+
+
 if [ $# -lt 2 ]; then
   error "not enough arguments"
 else
   if [ "$1" == "start" ]; 
   then
+
+    if [ $# -ne 2 ]; then
+      error "USAGE: tracker start <task_name>"
+    fi
+
     start_handler $2          
+
   elif [ "$1" == "stop" ];
   then
-    stop_handler $2 $3 
+
+    if [ $# -lt 3 ]; then
+      error "USAGE: tracker stop -m <message>"
+    fi
+
+    stop_handler $2 "${@:3}" 
+
   elif [ "$1" == "add" ];
   then
     add_handler $2 $3 $4 $5   
+
+  elif [ "$1" == "clean" ]  && [ "$2" == "-f" ];
+  then
+    rm $INPUT_FILE > /dev/null
+    info "Removed INPUT_FILE."
+
+  elif [ "$1" == "hard-clean" ] && [ "$2" == "-f" ];
+  then
+    rm $INPUT_FILE $OUTPUT_FILE > /dev/null
+    info "Removed both INPUT_FILE and OUTPUT_FILE."
+
   fi
+
 fi
 
 
